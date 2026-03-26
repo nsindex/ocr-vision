@@ -8,6 +8,7 @@ __pycache__/
 # シークレット
 .env
 .env.*
+!.env.example
 credentials.json
 service-account.json
 *.pem
