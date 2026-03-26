@@ -67,14 +67,6 @@ def process_folder(folder_path: Path) -> dict:
 def main():
     load_dotenv()
 
-    creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if not creds:
-        print("エラー: GOOGLE_APPLICATION_CREDENTIALS が設定されていません。.env を確認してください。")
-        sys.exit(1)
-    if not Path(creds).exists():
-        print(f"エラー: 認証ファイルが見つかりません: {creds}")
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(description="Google Cloud Vision API を使った一括OCRツール")
     parser.add_argument("folder", help="処理対象のフォルダパス")
     args = parser.parse_args()
@@ -82,6 +74,14 @@ def main():
     folder = Path(args.folder)
     if not folder.is_dir():
         print(f"エラー: フォルダが見つかりません: {args.folder}")
+        sys.exit(1)
+
+    creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if not creds:
+        print("エラー: GOOGLE_APPLICATION_CREDENTIALS が設定されていません。.env を確認してください。")
+        sys.exit(1)
+    if not Path(creds).exists():
+        print(f"エラー: 認証ファイルが見つかりません: {creds}")
         sys.exit(1)
 
     process_folder(folder)
