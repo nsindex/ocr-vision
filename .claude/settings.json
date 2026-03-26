@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/AI_DEV/.claude/hooks/run-lint.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

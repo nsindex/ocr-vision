@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# シークレット
+.env
+.env.*
+credentials.json
+service-account.json
+*.pem
+*.key
+
+# 出力
+output/
+
+# テスト用サンプル
+sample_images/
+
+# エディタ
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
