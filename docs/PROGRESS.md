@@ -10,10 +10,12 @@
   - OCR済み画像を input/processed/ に移動
   - 3日以上前のファイルを send2trash でゴミ箱送り
   - サマリーにゴミ箱件数を追加
+- レシートモード追加（parser/receipt.py・ocr.py --mode引数・テスト32件）
+- run_receipt.bat 追加・README に bat ファイルの説明を追加
 
 ## 進行中
 
-- レシートモード追加（parser/receipt.py・ocr.py --mode引数・テスト32件）
+（なし）
 
 ## 次にやること
 - 手動テスト（実画像・サービスアカウント設定後）
