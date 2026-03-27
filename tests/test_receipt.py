@@ -92,6 +92,18 @@ def test_parse_receipt_handles_json_with_extra_text():
     assert result["total"] == 260
 
 
+def test_parse_receipt_sends_configured_model():
+    json_body = '{"store":"X","date":"2024-01-01","items":[],"total":0}'
+    mock_resp = _make_ollama_response(json_body)
+
+    with patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen:
+        parse_receipt("テスト")
+
+    req = mock_urlopen.call_args.args[0]
+    payload = json.loads(req.data.decode("utf-8"))
+    assert payload["model"] == "gemma3:4b"
+
+
 # --- _validate_receipt ---
 
 def test_validate_receipt_raises_on_missing_keys():

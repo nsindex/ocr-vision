@@ -4,7 +4,7 @@ import urllib.request
 from json import JSONDecodeError, JSONDecoder
 from urllib.parse import urlparse
 
-MODEL = "qwen2.5:14b"
+MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b").strip() or "gemma3:4b"
 
 
 def _build_ollama_url() -> str:
