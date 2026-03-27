@@ -1,3 +1,5 @@
+import argparse
+import json
 import os
 import sys
 import time
@@ -6,6 +8,8 @@ from pathlib import Path
 import google.cloud.vision as vision
 from dotenv import load_dotenv
 from send2trash import send2trash
+
+from parser.receipt import parse_receipt
 
 BASE_DIR = Path(__file__).parent
 INPUT_DIR = BASE_DIR / "input"
@@ -23,8 +27,9 @@ def collect_images(folder: Path) -> list:
     return sorted(result)
 
 
-def get_output_path(image_path: Path, output_dir: Path) -> Path:
-    return output_dir / (image_path.stem + ".txt")
+def get_output_path(image_path: Path, output_dir: Path, mode: str = "general") -> Path:
+    ext = ".json" if mode == "receipt" else ".txt"
+    return output_dir / (image_path.stem + ext)
 
 
 def ocr_image(image_path: Path, client) -> str:
@@ -53,7 +58,7 @@ def trash_old_files(processed_dir: Path, days: int = 3) -> int:
     return count
 
 
-def process_folder(input_dir: Path, output_dir: Path, processed_dir: Path) -> dict:
+def process_folder(input_dir: Path, output_dir: Path, processed_dir: Path, mode: str = "general") -> dict:
     output_dir.mkdir(exist_ok=True)
     processed_dir.mkdir(exist_ok=True)
 
@@ -69,7 +74,7 @@ def process_folder(input_dir: Path, output_dir: Path, processed_dir: Path) -> di
     client = vision.ImageAnnotatorClient()
 
     for image_path in images:
-        out_path = get_output_path(image_path, output_dir)
+        out_path = get_output_path(image_path, output_dir, mode)
 
         if out_path.exists():
             dest = processed_dir / image_path.name
@@ -84,7 +89,11 @@ def process_folder(input_dir: Path, output_dir: Path, processed_dir: Path) -> di
 
         try:
             text = ocr_image(image_path, client)
-            out_path.write_text(text, encoding="utf-8")
+            if mode == "receipt":
+                data = parse_receipt(text)
+                out_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            else:
+                out_path.write_text(text, encoding="utf-8")
             try:
                 image_path.rename(processed_dir / image_path.name)
             except Exception as move_err:
@@ -101,6 +110,10 @@ def process_folder(input_dir: Path, output_dir: Path, processed_dir: Path) -> di
 
 
 def main():
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--mode", choices=["general", "receipt"], default="general")
+    args = arg_parser.parse_args()
+
     load_dotenv()
 
     creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
@@ -115,7 +128,8 @@ def main():
         print(f"エラー: input/ フォルダが見つかりません: {INPUT_DIR}")
         sys.exit(1)
 
-    process_folder(INPUT_DIR, OUTPUT_DIR, PROCESSED_DIR)
+    counts = process_folder(INPUT_DIR, OUTPUT_DIR, PROCESSED_DIR, mode=args.mode)
+    sys.exit(1 if counts["err"] else 0)
 
 
 if __name__ == "__main__":

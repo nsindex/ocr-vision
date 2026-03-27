@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from pathlib import Path
@@ -266,3 +267,49 @@ def test_process_folder_includes_trash_count(tmp_path):
         counts = process_folder(input_dir, output_dir, processed_dir)
 
     assert counts["trash"] == 3
+
+
+def test_process_folder_receipt_mode_creates_json(tmp_path):
+    input_dir, output_dir, processed_dir = _make_dirs(tmp_path)
+    img = input_dir / "receipt.jpg"
+    img.write_bytes(b"fake")
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.full_text_annotation.text = "店名 合計500"
+    mock_client.document_text_detection.return_value = mock_response
+
+    receipt_data = {"store": "テスト店", "date": "2024-01-01", "items": [], "total": 500}
+
+    with patch("ocr.vision.ImageAnnotatorClient", return_value=mock_client), \
+         patch("ocr.trash_old_files", return_value=0), \
+         patch("ocr.parse_receipt", return_value=receipt_data):
+        counts = process_folder(input_dir, output_dir, processed_dir, mode="receipt")
+
+    output = output_dir / "receipt.json"
+    assert output.exists()
+    data = json.loads(output.read_text(encoding="utf-8"))
+    assert data["store"] == "テスト店"
+    assert data["total"] == 500
+    assert (processed_dir / "receipt.jpg").exists()
+    assert counts == {"ok": 1, "skip": 0, "err": 0, "trash": 0}
+
+
+def test_process_folder_receipt_mode_parse_error_rolls_back(tmp_path):
+    input_dir, output_dir, processed_dir = _make_dirs(tmp_path)
+    img = input_dir / "receipt.jpg"
+    img.write_bytes(b"fake")
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.full_text_annotation.text = "不明なテキスト"
+    mock_client.document_text_detection.return_value = mock_response
+
+    with patch("ocr.vision.ImageAnnotatorClient", return_value=mock_client), \
+         patch("ocr.trash_old_files", return_value=0), \
+         patch("ocr.parse_receipt", side_effect=ValueError("JSONが見つかりませんでした")):
+        counts = process_folder(input_dir, output_dir, processed_dir, mode="receipt")
+
+    assert not (output_dir / "receipt.json").exists()
+    assert img.exists()  # 画像はinputに残る
+    assert counts == {"ok": 0, "skip": 0, "err": 1, "trash": 0}
